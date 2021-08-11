@@ -82,6 +82,49 @@ if {[info exists ::env(MACRO_WRAPPERS)]} {
   }
 }
 
+##### RESTRUCTURE #########
+repair_timing
+# pre restructure area/timing report (ideal clocks)
+puts "Post synth-opt area"
+report_design_area
+report_worst_slack -min -digits 3
+puts "Post synth-opt wns"
+report_worst_slack -max -digits 3
+puts "Post synth-opt tns"
+report_tns -digits 3
+
+report_checks -path_delay min_max \
+    -fields {slew capacitance input nets fanout} -digits 3
+
+if { [info exist ::env(RESYNTH_TIMING_RECOVER)] && $::env(RESYNTH_TIMING_RECOVER) == 1 } {
+  set_debug_level "RMP" "remap" 1
+  restructure -target timing -liberty_file $::env(DONT_USE_SC_LIB) -abc_logfile $::env(RESULTS_DIR)/$::env(DESIGN_NICKNAME)_$::env(PLATFORM)_abc.log -work_dir $::env(RESULTS_DIR)
+
+  # post restructure area/timing report (ideal clocks)
+  puts "Post restructure area"
+  report_design_area
+  report_worst_slack -min -digits 3
+  puts "Post restructure wns"
+  report_worst_slack -max -digits 3
+  puts "Post restructure tns"
+  report_tns -digits 3
+  
+  report_checks -path_delay min_max \
+    -fields {slew capacitance input nets fanout} -digits 3
+
+  repair_timing
+  puts "Post restructure-opt wns"
+  report_worst_slack -max -digits 3
+  puts "Post restructure-opt tns"
+  report_tns -digits 3
+
+  report_checks -path_delay min_max \
+    -fields {slew capacitance input nets fanout} -digits 3
+
+}
+
+##### END RESTRUCTURE #####
+
 # remove buffers inserted by yosys/abc
 remove_buffers
 
