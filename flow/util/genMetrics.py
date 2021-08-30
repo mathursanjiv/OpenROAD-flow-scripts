@@ -362,30 +362,6 @@ def extract_metrics(cwd, platform, design, flow_variant, output, hier_json):
                        logPath + '/2_4_mplace.log',
                        defaultNotFound=0)
 
-    extractTagFromFile('floorplan__synthopt__timing__setup__tns',
-                       metrics_dict,
-                       baseRegEx.format('Post synth-opt tns',
-                                        'tns (\S+)'),
-                       logPath + '/2_1_floorplan.log', defaultNotFound=0)
-
-    extractTagFromFile('floorplan__synthopt__timing__setup__ws',
-                       metrics_dict,
-                       baseRegEx.format('Post synth-opt wns',
-                                        'worst slack (\S+)'),
-                       logPath + '/2_1_floorplan.log', defaultNotFound=0)
-
-    extractTagFromFile('floorplan__restructopt__timing__setup__tns',
-                       metrics_dict,
-                       baseRegEx.format('Post restructure-opt tns',
-                                        'tns (\S+)'),
-                       logPath + '/2_1_floorplan.log', defaultNotFound=0)
-
-    extractTagFromFile('floorplan__restructopt__timing__setup__ws',
-                       metrics_dict,
-                       baseRegEx.format('Post restructure-opt wns',
-                                        'worst slack (\S+)'),
-                       logPath + '/2_1_floorplan.log', defaultNotFound=0)
-
     extractGnuTime('floorplan', metrics_dict, logPath + '/2_4_mplace.log')
 
     # Place
