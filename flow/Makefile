@@ -360,6 +360,7 @@ clean_synth:
 	rm -f  $(RESULTS_DIR)/1_*.v $(RESULTS_DIR)/1_synth.sdc
 	rm -f  $(REPORTS_DIR)/synth_*
 	rm -f  $(LOG_DIR)/1_*
+	rm -f  $(SYNTH_STOP_MODULE_SCRIPT)
 	rm -rf _tmp_yosys-abc-*
 
 

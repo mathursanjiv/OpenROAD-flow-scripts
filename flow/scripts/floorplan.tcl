@@ -125,8 +125,6 @@ if { [info exist ::env(RESYNTH_TIMING_RECOVER)] && $::env(RESYNTH_TIMING_RECOVER
 
 }
 
-##### END RESTRUCTURE #####
-
 # remove buffers inserted by yosys/abc
 remove_buffers
 
