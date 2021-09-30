@@ -57,6 +57,90 @@ if {![info exists ::env(FOOTPRINT)]} {
 puts "Perform buffer insertion..."
 repair_design
 
+
+
+# check the lower boundary of the PLACE_DENSITY and add PLACE_DENSITY_LB_ADDON if it exists
+if {[info exist ::env(PLACE_DENSITY_LB_ADDON)]} {
+  set place_density_lb [gpl::get_global_placement_uniform_density \
+  -pad_left $::env(CELL_PAD_IN_SITES_GLOBAL_PLACEMENT) \
+  -pad_right $::env(CELL_PAD_IN_SITES_GLOBAL_PLACEMENT)]
+  set place_density [expr $place_density_lb + $::env(PLACE_DENSITY_LB_ADDON) + 0.01]
+  if {$place_density > 1.0} {
+    set place_density 1.0
+  }
+} else {
+  set place_density $::env(PLACE_DENSITY)
+}
+
+#####################################################
+#### Timing Re-Synthesis ############################
+#####################################################
+if { [info exist ::env(RESYNTH_TIMING_RECOVER_GLOBAL_PLACE)] && $::env(RESYNTH_TIMING_RECOVER_GLOBAL_PLACE) == 1 } {
+  repair_timing
+  # pre restructure area/timing report (ideal clocks)
+  puts "Post global_place-opt area"
+  report_design_area
+  report_worst_slack -min -digits 3
+  puts "Post global_place-opt wns"
+  report_worst_slack -max -digits 3
+  puts "Post global_place-opt tns"
+  report_tns -digits 3
+
+  set target_slack 0
+  set num_tries 0
+  set max_tries 5
+
+  while { $num_tries < $max_tries } {
+
+    set current_slack [sta::time_sta_ui [sta::worst_slack_cmd "max"]]
+
+    if { $current_slack > $target_slack } {
+      break
+    }
+
+    # Timing driven Remap
+    # TODO: remove buffers in read blif or experiment with ABC buffering
+    # TODO: Use multiple outputs than just one?
+    # TODO: More Blob extraction strategies need to be tried - smaller cone, multiple independent blobs
+    # TODO: Control blob size as an option to restructure command
+    restructure -target timing -liberty_file $::env(DONT_USE_SC_LIB) \
+                -work_dir $::env(RESULTS_DIR)
+
+    # Incremental Placement
+    # Andy: Have multiple choice nodes, generate cuts (small blobs) for each, have ABC generate multiple netlist for each cut
+    #       Placer can then evaluate with multiple netlist options only for choice nodes.
+    if { 0 != [llength [array get ::env GLOBAL_PLACEMENT_ARGS]] } {
+      global_placement -routability_driven -density $place_density \
+                       -pad_left $::env(CELL_PAD_IN_SITES_GLOBAL_PLACEMENT) \
+                       -pad_right $::env(CELL_PAD_IN_SITES_GLOBAL_PLACEMENT) \
+                       $::env(GLOBAL_PLACEMENT_ARGS) \
+                       -incremental
+    } else {
+      global_placement -routability_driven -density $place_density \
+                -pad_left $::env(CELL_PAD_IN_SITES_GLOBAL_PLACEMENT) \
+                -pad_right $::env(CELL_PAD_IN_SITES_GLOBAL_PLACEMENT) \
+                -incremental
+    }
+
+    # Incremental routing/extraction as applicable
+    estimate_parasitics -placement
+
+    # Incremental optimization
+    repair_design
+    repair_timing -setup
+
+    puts "Post global_place_restructure-opt wns"
+    report_worst_slack -max -digits 3
+    puts "Post global_place_restructure-opt tns"
+    report_tns -digits 3
+    # TODO: Reject if timing does not improve
+    #       There is a feature in OpenDB to journal the changes and import
+    set num_tries [expr $num_tries+1]
+  }
+
+}
+
+
 if { [info exists env(TIE_SEPARATION)] } {
   set tie_separation $env(TIE_SEPARATION)
 } else {
